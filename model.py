@@ -171,14 +171,10 @@ class Meta_ConvNet(ClassifierMixin):
         
     #---------------------------------------------------------
     def plotStuff(self, X, Ws, num_plotted):
-        print("HERE TO PLOT")
-        if self.image_shape[1] == 1:
-            Plots.plot_filters(Ws[0].get_value(), self.image_shape[1], num_plotted, title="layer1 ")
-            if len(Ws) > 1:
-                Plots.plot_filters(Ws[1].get_value(), num_plotted, title="layer2 ")
-            
-        else:
-            Plots.plot_color_filters(Ws[0].get_value(), num_plotted, title='layer1')
+
+        Plots.plot_filters(Ws[0].get_value(), self.image_shape[1], num_plotted, title="layer1")
+        if len(Ws) > 1:
+            Plots.plot_filters(Ws[1].get_value(), self.image_shape[1], num_plotted, title="layer1")
         samples = X[:self.batch_size, :, :, :]
         
         predictions, conv_volume0, conv_volume1, conv_volume2, conv_volume3, conv_volume4, deconv_volume = self.predict(samples)

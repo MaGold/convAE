@@ -57,8 +57,8 @@ def plot_color_filters(x, idx, title=""):
         w = np.swapaxes(w, 0, 1)
         w = np.swapaxes(w, 1, 2)
 
-        #normalize ?
-        #w = (w - np.min(w)) / (np.max(w) - np.min(w))
+        #normalize
+        
         r = w[:,:,0] - np.min(w[:,:,0])
         g = w[:,:,1] - np.min(w[:,:,1])
         b = w[:,:,2] - np.min(w[:,:,2])
@@ -66,7 +66,7 @@ def plot_color_filters(x, idx, title=""):
         g = g * 1.0 / np.max(g)
         b = b * 1.0 / np.max(b)
         w = np.dstack((r,g,b))
-        ax.imshow(r,
+        ax.imshow(w,
                   cmap=plt.cm.gist_yarg,
                   interpolation='nearest',
                   aspect='equal')
