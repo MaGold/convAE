@@ -73,18 +73,17 @@ class Meta_ConvNet(ClassifierMixin):
         X = X.astype(np.float32)
         
         self.costs = []
-        total_costs = []
-        num_examples = X.shape[0]
+        N = X.shape[0]
         print("Fit %d examples (%d, %d, %d, %d) over %d epochs\n" %
-              (num_examples, X.shape[0], X.shape[1], X.shape[2], X.shape[3],
+              (N, X.shape[0], X.shape[1], X.shape[2], X.shape[3],
                self.n_epochs))
         count = 0
         num_plotted=0
         for epoch in range(self.n_epochs):
-            perm = np.random.permutation(num_examples)
+            perm = np.random.permutation(N)
             #print("Epoch: %d\n" % epoch)
-            for i in range(0, num_examples, self.batch_size):
-                if i + self.batch_size <= num_examples:
+            for i in range(0, N, self.batch_size):
+                if i + self.batch_size <= N:
                     # plotting updates
                     if count%50 == 0:
                         self.plotStuff(X, self.Ws, num_plotted)
@@ -98,7 +97,7 @@ class Meta_ConvNet(ClassifierMixin):
                                        
                     cost, out, g, outbefore = self.train(minibatch_x)
                     print("\n(%d/%d) %d/%d cost: %d" %
-                          (epoch+1, self.n_epochs, i, num_examples, cost))
+                          (epoch+1, self.n_epochs, i, N, cost))
                     print("output (min,max): (%f, %f)" %
                           (np.min(out), np.max(out)))
                     print("weights (min,max): (%f, %f)" %
@@ -110,7 +109,7 @@ class Meta_ConvNet(ClassifierMixin):
 
                     f = open('costs.txt', 'a')
                     f.write("\n(%d/%d) %d/%d cost: %f \n" %
-                            (epoch+1, self.n_epochs, i, num_examples, cost))
+                            (epoch+1, self.n_epochs, i, N, cost))
                     f.write("output (min,max): (%f, %f) \n" %
                             (np.min(out), np.max(out)))
                     f.write("weights (min,max): (%f, %f) \n" %
@@ -125,19 +124,10 @@ class Meta_ConvNet(ClassifierMixin):
             f = open('costs.txt', 'a')
             f.write('epoch %d) cost: %f \n' % (epoch, cost))
             f.close()
-            
-            # fig = plt.figure(figsize=(12, 8))
-            # ax = fig.add_subplot(111)
-            # plt.plot(np.log(costs))
-            # plt.savefig('convcosts.png')
-            # plt.close()
 
-
-        #self.costs = costs
-        self.total_costs = total_costs
 
         # do some predictions:
-        perm = np.random.permutation(num_examples)
+        perm = np.random.permutation(N)
         rowindexes = perm[:self.batch_size]
         minibatch_x = X[rowindexes, :, :, :]
         
@@ -166,7 +156,6 @@ class Meta_ConvNet(ClassifierMixin):
 
     #---------------------------------------------------------
     def get_corrupted_block(self, input, corruption_level):
-        # size = (input.shape[0], input.shape[1], )
         size = (input.shape[1], )
         print("size", size)
         noise = self.theano_rng.binomial(size=size, n=1,
@@ -176,27 +165,6 @@ class Meta_ConvNet(ClassifierMixin):
         
     #---------------------------------------------------------
     def get_corrupted_input(self, input, corruption_level):
-        """This function keeps ``1-corruption_level`` entries of the inputs the
-        same and zero-out randomly selected subset of size ``coruption_level``
-        Note : first argument of theano.rng.binomial is the shape(size) of
-               random numbers that it should produce
-               second argument is the number of trials
-               third argument is the probability of success of any trial
-
-                this will produce an array of 0s and 1s where 1 has a
-                probability of 1 - ``corruption_level`` and 0 with
-                ``corruption_level``
-
-                The binomial function return int64 data type by
-                default.  int64 multiplicated by the input
-                type(floatX) always return float64.  To keep all data
-                in floatX when floatX is float32, we set the dtype of
-                the binomial to floatX. As in our case the value of
-                the binomial is always 0 or 1, this don't change the
-                result. This is needed to allow the gpu to work
-                correctly as it only support float32 for now.
-
-        """
         return self.theano_rng.binomial(size=input.shape, n=1,
                                         p=1 - corruption_level,
                                         dtype=theano.config.floatX) * input
@@ -231,7 +199,6 @@ class Meta_ConvNet(ClassifierMixin):
     #---------------------------------------------------------
     def generate(self):
         size = (self.batch_size, 20, 18, 18)
-        #block = self.theano_rng.normal(size=size, dtype=theano.config.floatX)
         block = np.random.randn(*size)
         block = block.astype(np.float32)
         out = self.gen(block)
@@ -282,13 +249,10 @@ class Meta_ConvNet(ClassifierMixin):
             conv_out = conv.conv2d(
                 input=input,
                 filters=W,
-                #filter_shape=f,
-                #image_shape=in_shape,
                 border_mode="valid"
             )
             b_values = np.zeros((f[0],), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, borrow=True, name="Conv_b")
-            #bs.append(b)
             params.append(b)
             
             output = self.activation(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
@@ -296,11 +260,13 @@ class Meta_ConvNet(ClassifierMixin):
             conv_map_s = self.get_convout_vol(in_shape, f)
             conv_vols.append(conv_map_s)
             print("conv out vol:", conv_map_s)
+
             # setup the input into the next layer
             in_shape = (self.batch_size,
                         conv_map_s[0], conv_map_s[1], conv_map_s[2])
 
             input = output
+
             # dropout
             if self.dropout > 0.0:
                 input = self.get_corrupted_block(output, self.dropout)
@@ -328,6 +294,7 @@ class Meta_ConvNet(ClassifierMixin):
                             int(pool_map_s[1]), int(pool_map_s[2]))
                 input = output
 
+        # for generating "fantasized" data, TODO
         halfpass = input
         input = halfpass
         
@@ -374,7 +341,6 @@ class Meta_ConvNet(ClassifierMixin):
             #print("-------------------------------------------------")
             deConv_b_values = np.zeros((self.batch_size,), dtype=theano.config.floatX)
             deConv_b = theano.shared(value=deConv_b_values, borrow=True, name="DeConv_b")
-            #deConv_bs.append(deConv_b)
             params.append(deConv_b)
             output = self.activation(deconv_out +
                                      deConv_b.dimshuffle(0, 'x', 'x', 'x'))
