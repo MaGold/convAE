@@ -90,14 +90,11 @@ def plot_predictions(samples, predictions, k, batch_size, imgshape):
         plt.imshow(samples[i, :, :, :],
                 cmap=plt.cm.gist_yarg, interpolation='nearest',
                 aspect='equal')
-        #print(samples[i, :, :, :])
         path = "convpredictions"
         fname = str(k) + '_' + str(i) + 'sample_IN.png'
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
         plt.savefig(os.path.join(path, fname), dpi=imgshape)
-        # plt.clf()
         plt.close('all')
-        #pred = CONV.predict(samples)
         fig = plt.figure(figsize=(5, 5))
         print(predictions[i, :, :, :].shape)
         print(predictions[i, :, :, :])
@@ -107,7 +104,6 @@ def plot_predictions(samples, predictions, k, batch_size, imgshape):
         fname = str(k) + '_' + str(i) + 'sample_OUT.png'
         plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
         plt.savefig(os.path.join(path, fname), dpi=imgshape)
-        # plt.clf()
         plt.close('all')
 
 #--------------------------------------------------------------------
@@ -142,7 +138,14 @@ def plot_volume(volumes, k, title):
         plt.close('all')
 
 #--------------------------------------------------------------------
-def predictions_grid_rgb(samples, predictions, k, imgshape):
+def plot_predictions_grid(samples, predictions, k, imgshape):
+    if imgshape[1] == 1:
+        predictions_grid_grey(samples, predictions, k, imgshape)
+    elif imgshape[1] == 3:
+        predictions_grid_color(samples, predictions, k, imgshape)
+    return
+
+def predictions_grid_color(samples, predictions, k, imgshape):
     batch_size = samples.shape[0]
     print("printintg predictions:")
     print(samples.shape)
@@ -212,15 +215,16 @@ def plot_costs(costs):
 def plot_testimg(imgs):
     for i in range(np.min([imgs.shape[0], 10])):
         img = imgs[i, :]
-        img = img.reshape(28, 28)
+        #img = img.reshape(ch28, 28)
+        img = np.swapaxes(img, 0, 1)
+        img = np.swapaxes(img, 1, 2)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         print(img.shape)
-        ax.imshow(img, cmap=plt.cm.gist_yarg,
-                interpolation='nearest', aspect='equal')
+        ax.imshow(img, cmap=plt.cm.gist_yarg, vmin=0, vmax=255)#, interpolation='nearest')
     # cmap=plt.cm.gist_yarg,
     # interpolation='nearest',
     # aspect='equal')
-        #plt.savefig(str(i) + '_testimg.png')
-        plt.savefig(os.path.join('fanta', str(i) + '_testimg.png'))
+        plt.savefig(str(i) + '_testimg.png')
+        #plt.savefig(os.path.join('fanta', str(i) + '_testimg.png'))
         plt.close()
